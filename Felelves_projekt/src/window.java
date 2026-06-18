@@ -153,7 +153,7 @@ public class window extends JFrame {
                 double armWR = model.getArmWidth() / 2.0;
                 double armHR = model.getArmHeight() / 2.0;
                 int frameSize = model.getDialSize() + (2 * model.getFrameThickness());
-                int szijHossz = (int) (2 * Math.PI * Math.sqrt((armWR * armWR + armHR * armHR) / 2.0));
+                int szijHossz = model.getStrapLength();
 
                 String info = String.format(
                         "Szíj hossza (kar kerületéből): ~%d px\n" +
@@ -274,6 +274,11 @@ class WatchModel {
     private int strapThickness = 4;
     private int armWidth = 140;
     private int armHeight = 80;
+    public int getStrapLength() {
+        double armWR = this.armWidth / 2.0;
+        double armHR = this.armHeight / 2.0;
+        return (int) (2 * Math.PI * Math.sqrt((armWR * armWR + armHR * armHR) / 2.0));
+    }
 
     private Color dialColor = Color.WHITE;
     private Color strapColor = Color.DARK_GRAY;
@@ -559,7 +564,12 @@ class SquareDigitalWatch extends SquareWatch {
 // --------------------------------------------------------
 class TopViewPanel extends JPanel {
     private WatchModel model;
-    public TopViewPanel(WatchModel model) { this.model = model; setBorder(BorderFactory.createTitledBorder("Felülnézet")); setBackground(Color.WHITE); }
+    public TopViewPanel(WatchModel model) {
+        this.model = model;
+        // A createEmptyBorder() eltünteti a kék/szürke vonalat, de a "Felülnézet" felirat megmarad
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(), "Felülnézet"));
+        setBackground(Color.WHITE);
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -568,16 +578,24 @@ class TopViewPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int cx = getWidth() / 2;
-        g2d.setColor(model.getStrapColor());
-        g2d.fillRect(cx - (model.getStrapWidth() / 2), 10, model.getStrapWidth(), getHeight() - 20);
+        int cy = getHeight() / 2;
+        int strapLength = model.getStrapLength();
 
-        model.getCurrentWatch().drawTopView(g2d, cx, getHeight() / 2);
+        g2d.setColor(model.getStrapColor());
+        g2d.fillRect(cx - (model.getStrapWidth() / 2), cy - (strapLength / 2), model.getStrapWidth(), strapLength);
+
+        model.getCurrentWatch().drawTopView(g2d, cx, cy);
     }
 }
 
 class BottomViewPanel extends JPanel {
     private WatchModel model;
-    public BottomViewPanel(WatchModel model) { this.model = model; setBorder(BorderFactory.createTitledBorder("Alulnézet")); setBackground(Color.WHITE); }
+    public BottomViewPanel(WatchModel model) {
+        this.model = model;
+        // A kék vonal itt is eltűnik
+        setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(), "Alulnézet"));
+        setBackground(Color.WHITE);
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -586,10 +604,14 @@ class BottomViewPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int cx = getWidth() / 2;
-        g2d.setColor(model.getStrapColor());
-        g2d.fillRect(cx - (model.getStrapWidth() / 2), 10, model.getStrapWidth(), getHeight() - 20);
+        int cy = getHeight() / 2;
+        int strapLength = model.getStrapLength();
 
-        model.getCurrentWatch().drawBottomView(g2d, cx, getHeight() / 2);
+        // Szíj kirajzolása a számított szijHossz alapján, függőlegesen középre igazítva
+        g2d.setColor(model.getStrapColor());
+        g2d.fillRect(cx - (model.getStrapWidth() / 2), cy - (strapLength / 2), model.getStrapWidth(), strapLength);
+
+        model.getCurrentWatch().drawBottomView(g2d, cx, cy);
     }
 }
 
@@ -733,15 +755,54 @@ class ControlsPanel extends JPanel {
             public void changedUpdate(DocumentEvent e) { parseTime(); }
             public void removeUpdate(DocumentEvent e) { parseTime(); }
             public void insertUpdate(DocumentEvent e) { parseTime(); }
+
             private void parseTime() {
                 if (isUpdatingTime) return;
-                try {
-                    int h = Integer.parseInt(hourField.getText().trim());
-                    int m = Integer.parseInt(minuteField.getText().trim());
-                    h = Math.max(0, Math.min(23, h)); m = Math.max(0, Math.min(59, m));
-                    isUpdatingTime = true; timeSlider.setValue(h * 60 + m); isUpdatingTime = false;
-                    model.triggerTimeAnimation(h, m);
-                } catch (NumberFormatException ex) {}
+
+                // Késleltetett UI frissítés, hogy elkerüljük a "mutating in notification" hibát
+                SwingUtilities.invokeLater(() -> {
+                    isUpdatingTime = true;
+                    try {
+                        String hStr = hourField.getText();
+                        String mStr = minuteField.getText();
+
+                        // 1. Ha teljesen kitörölték (üres a mező), cseréljük 0-ra
+                        if (hStr.trim().isEmpty()) hStr = "0";
+                        if (mStr.trim().isEmpty()) mStr = "0";
+
+                        // 2. Szűrjük ki azokat a karaktereket, amik nem számok (pl. betűk)
+                        hStr = hStr.replaceAll("[^\\d]", "");
+                        mStr = mStr.replaceAll("[^\\d]", "");
+
+                        // Ha a betűk kiszűrése után teljesen üres lett a string, legyen újra 0
+                        if (hStr.isEmpty()) hStr = "0";
+                        if (mStr.isEmpty()) mStr = "0";
+
+                        int h = Integer.parseInt(hStr);
+                        int m = Integer.parseInt(mStr);
+
+                        // 3. Értékek korlátozása a kért maximumokra
+                        if (h > 23) h = 23;
+                        if (m > 59) m = 59;
+
+                        // 4. Visszaírjuk a mezőkbe a javított értéket, de CSAK akkor, ha változott.
+                        // Ez fontos, hogy gépelés közben ne ugorjon a kurzor indokolatlanul a szöveg végére.
+                        if (!hourField.getText().equals(String.valueOf(h))) {
+                            hourField.setText(String.valueOf(h));
+                        }
+                        if (!minuteField.getText().equals(String.valueOf(m))) {
+                            minuteField.setText(String.valueOf(m));
+                        }
+
+                        // Csúszka és modell szinkronizálása a validált idővel
+                        timeSlider.setValue(h * 60 + m);
+                        model.triggerTimeAnimation(h, m);
+                    } catch (Exception ex) {
+                        // Váratlan formázási hibák elnyomása
+                    } finally {
+                        isUpdatingTime = false;
+                    }
+                });
             }
         };
         hourField.getDocument().addDocumentListener(timeListener);
