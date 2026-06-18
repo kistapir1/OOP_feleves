@@ -10,9 +10,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 // --------------------------------------------------------
 // THE MAIN APP (This is the only public class in the file)
 // --------------------------------------------------------
-public class window extends JFrame {
+public class Window extends JFrame {
 
-    public window() {
+    public Window() {
         setTitle("Karóra Konfigurátor");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 800);
@@ -49,7 +49,7 @@ public class window extends JFrame {
             FileNameExtensionFilter filter = new FileNameExtensionFilter("Óra konfiguráció fájlok (*.ora)", "ora");
             fileChooser.setFileFilter(filter);
 
-            if (fileChooser.showSaveDialog(window.this) == JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showSaveDialog(Window.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
 
                 // Ha a felhasználó nem írta be a .ora kiterjesztést, automatikusan hozzáadjuk
@@ -71,9 +71,9 @@ public class window extends JFrame {
                     writer.println(model.isSquare());
                     writer.println(model.getHours());
                     writer.println(model.getMinutes());
-                    JOptionPane.showMessageDialog(window.this, "Sikeres mentés a következő fájlba: " + file.getName(), "Infó", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(Window.this, "Sikeres mentés a következő fájlba: " + file.getName(), "Infó", JOptionPane.INFORMATION_MESSAGE);
                 } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(window.this, "Hiba a mentés során:\n" + ex.getMessage(), "Hiba", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(Window.this, "Hiba a mentés során:\n" + ex.getMessage(), "Hiba", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -87,7 +87,7 @@ public class window extends JFrame {
             FileNameExtensionFilter filter = new FileNameExtensionFilter("Óra konfiguráció fájlok (*.ora)", "ora");
             fileChooser.setFileFilter(filter);
 
-            if (fileChooser.showOpenDialog(window.this) == JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showOpenDialog(Window.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 try (Scanner scanner = new Scanner(file)) {
                     model.setDialSize(Integer.parseInt(scanner.nextLine()));
@@ -109,7 +109,7 @@ public class window extends JFrame {
                     controls.updateUIControls();
                     repaint();
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(window.this, "Hiba a fájl beolvasásakor. Lehet, hogy sérült vagy nem érvényes .ora fájl.", "Hiba", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(Window.this, "Hiba a fájl beolvasásakor. Lehet, hogy sérült vagy nem érvényes .ora fájl.", "Hiba", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -123,12 +123,12 @@ public class window extends JFrame {
             FileNameExtensionFilter filter = new FileNameExtensionFilter("Óra konfiguráció fájlok (*.ora)", "ora");
             fileChooser.setFileFilter(filter);
 
-            if (fileChooser.showOpenDialog(window.this) == JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showOpenDialog(Window.this) == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
 
                 // Megerősítő ablak
                 int confirm = JOptionPane.showConfirmDialog(
-                        window.this,
+                        Window.this,
                         "Biztosan véglegesen törölni akarod ezt a fájlt: " + file.getName() + "?",
                         "Megerősítés",
                         JOptionPane.YES_NO_OPTION,
@@ -137,9 +137,9 @@ public class window extends JFrame {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     if (file.delete()) {
-                        JOptionPane.showMessageDialog(window.this, "A fájl sikeresen törölve.");
+                        JOptionPane.showMessageDialog(Window.this, "A fájl sikeresen törölve.");
                     } else {
-                        JOptionPane.showMessageDialog(window.this, "Hiba történt a törlés során (lehet, hogy a fájl írásvédett vagy használatban van).", "Hiba", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(Window.this, "Hiba történt a törlés során (lehet, hogy a fájl írásvédett vagy használatban van).", "Hiba", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -165,7 +165,7 @@ public class window extends JFrame {
                         szijHossz, model.getStrapWidth(), model.getStrapThickness(),
                         model.getFrameThickness(), model.getDialSize(), frameSize
                 );
-                JOptionPane.showMessageDialog(window.this, info, "Óra méretei", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(Window.this, info, "Óra méretei", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
@@ -238,7 +238,7 @@ public class window extends JFrame {
                                 "- Méret menü: Az óra méreteinek listázása.\n" +
                                 "- Generálás menü: Véletlenszerű konfiguráció létrehozása.\n\n" +
                                 "A programot készítette: Horváth Márk és Benczúr Gábor.\n";
-                JOptionPane.showMessageDialog(window.this, helpText, "Súgó", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(Window.this, helpText, "Súgó", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
@@ -261,7 +261,7 @@ public class window extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new window().setVisible(true);
+            new Window().setVisible(true);
         });
     }
 }
