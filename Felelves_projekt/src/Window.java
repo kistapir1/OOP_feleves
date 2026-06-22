@@ -160,10 +160,15 @@ public class Window extends JFrame {
                                 "Szíj szélessége: %d px\n" +
                                 "Szíj vastagsága (magassága): %d px\n" +
                                 "Keret mérete (vastagsága): %d px\n" +
+                                "Keret magassága: %.2f px\n" +
                                 "Számlap átmérője: %d px\n" +
-                                "Óra átmérője: %d px",
+                                "Óra átmérője: %d px\n" +
+                                "Óra felszíne: %.2f px²\n" +
+                                "Óra térfogata: %.2f px³",
                         szijHossz, model.getStrapWidth(), model.getStrapThickness(),
-                        model.getFrameThickness(), model.getDialSize(), frameSize
+                        model.getFrameThickness(), model.getCurrentWatch().getWatchHeight(),
+                        model.getDialSize(), frameSize, model.getCurrentWatch().getSurface(),
+                        model.getCurrentWatch().getVolume()
                 );
                 JOptionPane.showMessageDialog(Window.this, info, "Óra méretei", JOptionPane.INFORMATION_MESSAGE);
             }
@@ -384,9 +389,27 @@ abstract class Watch {
         this.model = model;
     }
 
+    protected double getStrapVolume() {
+        return (double) model.getStrapLength() * model.getStrapWidth() * model.getStrapThickness();
+    }
+
+    protected double getStrapSurface() {
+        double l = model.getStrapLength();
+        double w = model.getStrapWidth();
+        double t = model.getStrapThickness();
+        return 2.0 * (l * w + l * t + w * t);
+    }
+
+    public abstract double getVolume();
+    public abstract double getSurface();
+    public double getWatchHeight() {
+        return 12.0 + (model.getFrameThickness() / 2.0);
+    }
+
     public abstract void drawTopView(Graphics2D g2d, int cx, int cy);
     public abstract void drawBottomView(Graphics2D g2d, int cx, int cy);
     public abstract void drawArmView(Graphics2D g2d, int cx, int cy, int armTopY);
+
 
     protected void drawAnalogHands(Graphics2D g2d, int cx, int cy) {
         double hAngle = Math.toRadians((model.getAnimatedMinutes() / 60.0) * 30);
@@ -440,6 +463,24 @@ abstract class RoundWatch extends Watch {
     public RoundWatch(WatchModel model) { super(model); }
 
     @Override
+    public double getVolume() {
+        double radius = (model.getDialSize() + 2.0 * model.getFrameThickness()) / 2.0;
+        double height = getWatchHeight();
+        double caseVolume = Math.PI * Math.pow(radius, 2) * height;
+
+        return caseVolume + getStrapVolume();
+    }
+
+    @Override
+    public double getSurface() {
+        double radius = (model.getDialSize() + 2.0 * model.getFrameThickness()) / 2.0;
+        double height = getWatchHeight();
+        double caseSurface = 2 * Math.PI * radius * (radius + height);
+
+        return caseSurface + getStrapSurface();
+    }
+
+    @Override
     public void drawBottomView(Graphics2D g2d, int cx, int cy) {
         int frameSize = model.getDialSize() + (2 * model.getFrameThickness());
         g2d.setColor(model.getFrameColor());
@@ -467,6 +508,24 @@ abstract class RoundWatch extends Watch {
 // --- ABSZTRAKT SZÖGLETES ÓRA ---
 abstract class SquareWatch extends Watch {
     public SquareWatch(WatchModel model) { super(model); }
+
+    @Override
+    public double getVolume() {
+        double a = model.getDialSize() + 2.0 * model.getFrameThickness();
+        double height = getWatchHeight();
+        double caseVolume = a * a * height;
+
+        return caseVolume + getStrapVolume();
+    }
+
+    @Override
+    public double getSurface() {
+        double a = model.getDialSize() + 2.0 * model.getFrameThickness();
+        double height = getWatchHeight();
+        double caseSurface = 2 * a * a + 4 * a * height;
+
+        return caseSurface + getStrapSurface();
+    }
 
     @Override
     public void drawBottomView(Graphics2D g2d, int cx, int cy) {
